@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>贪吃蛇</title>
+	<style>
+		.inner{
+			padding-top: 60px;
+			width:1000px;
+			margin:0 auto;
+		}
+		.bg{
+			position: fixed;
+			top:0;
+			left:0;
+			width:100%;
+			height:700px;
+			background-image: url(bg.jpg);
+			background-size: 100%;
+			background-position: 50% 100%;
+			z-index: -1;
+		}
+		#game{
+			height:500px;
+			border:2px solid #804040;
+			background-image: url(game.jpg);
+		}
+		.snake{
+			position: absolute;
+			width:20px;
+			height:20px;
+			background-image: url(she.png);
+		}
+		.food{
+			position: absolute;
+			width:20px;
+			height:20px;
+			background-image: url(food.png);
+		}
+		#defen{
+			display: inline-block;
+			text-align: center;
+			color:#f00;
+			opacity: 1;
+			transform: scale(1);
+			transition:all .3s;
+		}
+		#defen.dong{
+			opacity: 0;
+			transform: scale(1.5);
+		}
+		#play{
+			width:100px;
+			height:30px;
+			cursor:pointer;
+			border-radius:4px;
+			outline: none;
+		}
+		.caozuo{
+			margin-left: 100px;
+			padding-left: 10px;
+			padding-right: 20px;
+			float: left;
+			background:rgba(0,150,0,.5);
+			border:2px solid #0b0;
+		}
+		.main{
+			float: left;
+			width:504px;
+			height:504px;
+			margin-left: 50px;
+			position: relative;
+			overflow: hidden;
+		}
+		#over{
+			position: absolute;
+			width:100%;
+			height:100%;
+			left:0;
+		}
+	</style>
+</head>
+<body>
+	<div class="bg"></div>
+	<div class="inner">
+		<div class="caozuo">
+			<p>操作方式：<select id="fangshi">
+				<option>玩家</option>
+				<option value="电脑">电脑</option>
+			</select></p>
+			<p>得分：<span id="defen">0</span></p>
+			<p><input id="play" type="button" value="开始游戏"></p>
+			<p>游戏难度：<select id="jieduan">
+				<option value="简单">简单</option>
+				<option value="一般">一般</option>
+				<option value="困难">困难</option>
+			</select></p>
+			<p>时间：<span id="time">0</span></p>
+		</div>
+		<div class="main">
+			<div id="game"></div>
+			<div id="over" style="top:-504px;"><img src="over.jpg" alt=""></div>
+		</div>
+	</div>
+	<script>
+		var game = document.getElementById("game");
+		var defen = document.getElementById("defen");
+		var play = document.getElementById("play");
+		var jieduan = document.getElementById("jieduan");
+		var fnagshi = document.getElementById("fnagshi");
+		var time = document.getElementById("time");
+		var over = document.getElementById("over");
+		var initLength = 3;	//蛇身初始长度
+		var snakeArr = [];	//蛇长度
+		var point = "right";//蛇的方向
+		var speed;	//游戏难度值
+		var newFood = false;
+		var score = 0;	//分值
+		//游戏结束动画
+		function gameOver(){
+			var overTime = setInterval(function(){
+				var overTop = parseInt(over.style.top);
+				if(overTop != 0){
+					over.style.top = overTop + 12 + "px";
+				}else{
+					clearInterval(overTop);
+				}
+			},30)
+		}
+		//蛇的每节身体
+		function snakeBody(place){
+			//生成一节身体
+			var snake = document.createElement("div");
+			snake.className = "snake";
+			//蛇身体的位置
+			snake.style.left = place.x + "px";
+			snake.style.top = place.y + "px";
+			//把蛇插入游戏内
+			game.appendChild(snake);
+			snakeArr.push(snake);
+		}
+		//蛇初始长度
+		function initSnake(){
+			for(var i = 0 ; i < initLength ; i++){
+				snakeBody({x:i*20, y:0});
+			}
+		}
+		initSnake();
+		//移动蛇
+		function snakeRun(){
+			//获取旧蛇的头部的left top值
+			var LEFT = parseInt(snakeArr[snakeArr.length-1].style.left);
+			var TOP = parseInt(snakeArr[snakeArr.length-1].style.top);
+			//在数组里 把蛇尾添加到蛇头前
+			snakeArr.push(snakeArr[0]);
+			//在数组里 删除之前的蛇尾（校正蛇身数组）
+			snakeArr.shift();
+			//控制蛇的方向
+			if(point == "right"){
+				snakeArr[snakeArr.length-1].style.left = LEFT + 20 + "px";
+				snakeArr[snakeArr.length-1].style.top = TOP + "px";
+			}
+			if(point == "left"){
+				snakeArr[snakeArr.length-1].style.left = LEFT - 20 + "px";
+				snakeArr[snakeArr.length-1].style.top = TOP + "px";
+			}
+			if(point == "top"){
+				snakeArr[snakeArr.length-1].style.left = LEFT + "px";
+				snakeArr[snakeArr.length-1].style.top = TOP - 20 + "px";
+			}
+			if(point == "button"){
+				snakeArr[snakeArr.length-1].style.left = LEFT + "px";
+				snakeArr[snakeArr.length-1].style.top = TOP + 20 + "px";
+			}
+		}
+
+		//键盘控制蛇的方向
+		window.onkeydown = function(e){
+			if(e.keyCode == 39 && point != "left"){
+				point = "right";
+			}
+			if(e.keyCode == 37 && point != "right"){
+				point = "left";
+			}
+			if(e.keyCode == 38 && point != "button"){
+				point = "top";
+			}
+			if(e.keyCode == 40 && point != "top"){
+				point = "button";
+			}
+		}
+		//随机生成食物
+		function createFood(){
+			if(newFood == true){
+				game.removeChild(game.getElementsByTagName("span")[0]);
+			}
+			//生成食物并插入游戏
+			var food = document.createElement("span");
+			food.className = "food";
+			game.appendChild(food);
+			//生成随机坐标
+			pointObj = {};
+			pointObj.x = Math.floor((Math.random()*480)/20)*20;
+			pointObj.y = Math.floor((Math.random()*480)/20)*20;
+			//判断随机食物刷新不在蛇身上
+			for(var i = 0 ; i < snakeArr.length ; i++){
+				if(pointObj.x == parseInt(snakeArr[i].style.left) && pointObj.y == parseInt(snakeArr[i].style.top)){
+					createFood();
+				}
+			}
+			food.style.left = pointObj.x + "px";
+			food.style.top = pointObj.y + "px";
+			newFood = true;
+		}
+		createFood();
+		//碰撞食物加分效果
+		function jiafenxiaoguo(){
+			defen.className = "dong";
+			score += 10;
+			setTimeout(function(){
+				defen.innerHTML = score;
+				defen.className = "";
+			},300)
+			
+		}
+		//碰撞食物加分方法
+		function jiafen(){
+			headX = parseInt(snakeArr[snakeArr.length-1].style.left);
+			headY = parseInt(snakeArr[snakeArr.length-1].style.top);
+			//判断蛇吃到食物
+			if(headX == pointObj.x && headY == pointObj.y){
+				//蛇吃膨胀了
+				snakeBody({x:headX,y:headY});
+				createFood();
+				jiafenxiaoguo();
+			}
+		}
+		//游戏难度
+		function nandu(){
+			if(jieduan.value == "简单"){
+				speed = 150;
+			}
+			if(jieduan.value == "一般"){
+				speed = 100;
+			}
+			if(jieduan.value == "困难"){
+				speed = 50;
+			}
+		}
+		//点击开始游戏
+		play.onclick = function(){
+			//游戏时间
+			timeOver = setInterval(function(){
+				time.innerHTML = parseInt(time.innerHTML)+1;
+			},1000)
+			nandu();
+			if(play.value == "开始游戏"){
+				play.value = "重新开始";
+				var stop = setInterval(function(){
+					snakeRun();
+					//碰撞食物加分
+					jiafen();
+					//上帝模式
+					if(fangshi.value == "电脑"){
+						shangdi();
+					}
+					//碰撞墙壁监测
+					if(headX > 480 || headX < 0 || headY > 480 || headY < 0){
+						clearInterval(stop);
+						clearInterval(timeOver);
+						gameOver()
+					}
+					//自身碰撞监测
+					for(var i = 0 ; i < snakeArr.length-2 ; i++){
+						if(headX == parseInt(snakeArr[i].style.left) && headY == parseInt(snakeArr[i].style.top)){
+							clearInterval(stop);
+							clearInterval(timeOver);
+							gameOver()
+						}
+					}
+				},speed)
+			}else{
+				//刷新页面
+				location.reload();
+			}
+		}
+		//上帝函数
+		function shangdi(){
+			if(headX != pointObj.x){
+				if(headX > pointObj.x){
+					if(point == "right"){
+						point = "button";
+					}else{
+						point = "left";
+					}
+				}
+				if(headX < pointObj.x){
+					if(point == "left"){
+						point = "button";
+					}else{
+						point = "right";
+					}
+				}
+			}
+			if(headX == pointObj.x && headY != pointObj.y){
+				if(headY > pointObj.y){
+					if(point == "button"){
+						point = "left";
+					}else{
+						point = "top";
+					}
+				}
+				if(headY < pointObj.y){
+					if(point == "top"){
+						point = "left";
+					}else{
+						point = "button";
+					}
+				}
+			}
+		}
+
+		/*
+			键盘事件：
+				上:38
+				下:40
+				左:37
+				右:39
+		*/
+	</script>
+</body>
+</html>
